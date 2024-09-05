@@ -28,6 +28,9 @@ public class PlayerController : MonoBehaviour
         // So this is saying, "find the Rigidbody2D component on this gameobject and store a reference to it in the field we called rb.
         // We do this so that we can access the methods and fields of the Rigidbody2D component on our player character.
         rb = GetComponent<Rigidbody2D>();
+
+        //Vector3 position = transform.position;
+        //Vector3 size = transform.localScale;
     }
 
     // Update is called once per frame, every single frame.
