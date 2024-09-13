@@ -6,11 +6,12 @@ TagManager:
   tags:
   - loopingPlatform
   - Coin
+  - Enemy
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Ground
   - Water
   - UI
   - 

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
@@ -13,11 +14,25 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float moveSpeed;
     [SerializeField] float jumpForce;
 
+    // This will allow us to specfici specific layers that exist in the Editor.
+    // I created a custom "Ground" layer and applied it to ALL blocks the player can walk on.
+    // Then, in the Inspector, I checked the box for groundLayer next to "Ground".
+    [SerializeField] LayerMask groundLayer;
+
+    // We'll use this field to store if the player is currently jumping or not.
+    private bool isJumping = false;
+
     // References
     // We will use references anytime we need to access and communicate with a specific instance of any other class.
     // Here we are declaring a field called rb and saying that it's of type Rigidbody2D.
     // Remember classes are objects, which means you can think of classes as data types/structures.
     private Rigidbody2D rb;
+
+    // We need a reference to the Animator component on the player to have control over the animations.
+    private Animator animator;
+
+    // A reference to the Sprite Renderer on the player.
+    private SpriteRenderer spriteRenderer;
 
     // Start is called a single time before the first frame update
     // This is a good place to initialize fields or references that were not initialized during declaration.
@@ -28,6 +43,12 @@ public class PlayerController : MonoBehaviour
         // So this is saying, "find the Rigidbody2D component on this gameobject and store a reference to it in the field we called rb.
         // We do this so that we can access the methods and fields of the Rigidbody2D component on our player character.
         rb = GetComponent<Rigidbody2D>();
+
+        // Initialize the Animator.
+        animator = GetComponent<Animator>();
+
+        // Initialize the Sprite Renderer.
+        spriteRenderer = GetComponent<SpriteRenderer>();
 
         //Vector3 position = transform.position;
         //Vector3 size = transform.localScale;
@@ -50,6 +71,29 @@ public class PlayerController : MonoBehaviour
         {
             Jump();
         }
+
+        // There are a lot of ways to check if the player is on the ground.
+        // The easiest way is to make it so when the Jump() method is called, it sets isJumping to true.
+        // And then using OnCollisionEnter2D, we check to see if the player collides with the ground,
+        // and if they do, set isJumping back to false.
+        // But what if the player simply walks off a floating platform but doesn't jump first?
+        // isJumping would still be set to false, which means they'd be able to jump in the air.
+        // So instead, in addition to setting isJumping to true in Jump(), we'll also check to see
+        // if the ground is closeby and underneath the player.
+        // We will use a raycast to do this. This essentially just shoots a straight invisible laser beam
+        // from a position we choose (so the player's position) in a direction we choose (so down in this case).
+        // We also can specify the max range of the laser. And we will also tell it what layer it can hit.
+        // It won't hit anything that's not in this layer.
+        if (Physics2D.Raycast(transform.position, Vector2.down, .6f, groundLayer))
+        {
+            // If our ray sucessfully hits something on the ground layer, we're obviously not jumping.
+            isJumping = false;
+        }
+        else
+        {
+            // And the other option is we are jumping since the ground isn't below us.
+            isJumping = true;
+        }
     }
 
     // Method to handle player input, and apply movement if necessary.
@@ -66,6 +110,31 @@ public class PlayerController : MonoBehaviour
         // If we press 'a' it'll be -1.
         // If we're pressing nothing, it will be 0.
         float moveInput = Input.GetAxis("Horizontal");
+
+        // If our moveInput is anything other than 0, we will tell the Animator that we're moving.
+        // This will then update our isMoving parameter in the Animator Controller for the player.
+        // And our animation graph has it set up so if isMoving is true, the animation for walking will play.
+        if (moveInput != 0f)
+        {
+            // Call the SetBool() method on the animator, passing in the name of the parameter we set up in the Animator,
+            // and then the value for the boolean. In this case, the player isn't stationary, so we set it to true.
+            animator.SetBool("isMoving", true);
+        }
+        else
+        {
+            // Here, the only other option is the player isn't moving, so we set it to false.
+            animator.SetBool("isMoving", false);
+        }
+
+        // Flip the player to facing left/right depending on movement direction.
+        if (moveInput > 0f)
+        {
+            spriteRenderer.flipX = true;
+        }
+        else if (moveInput < 0f)
+        {
+            spriteRenderer.flipX = false;
+        }
 
         // (1,0)
         // new Vector2(1, 0)
@@ -94,6 +163,15 @@ public class PlayerController : MonoBehaviour
     // Method to make the player jump in the air using a physics force applied to the Rigidbody2D on this player.
     private void Jump()
     {
+        // Let's first check to see if the player is already jumping.
+        if (isJumping)
+        {
+            // If we are jumping, we just exit the method by returning.
+            // You could also check in Update() to see if the player is already jumping before allowing
+            // Jump() to be called.
+            return;
+        }
+
         // We're calling the AddForce() method from the Rigidbody2D class we referenced earlier (the one on the player).
         // AddForce is an overloaded method meaning there are different versions of it that take different types/numbers of arguments.
         // This particular version takes a vector, and the ForceMode2D of the physics force, which is just an enum defined in the Rigidbody2D class.
@@ -103,5 +181,38 @@ public class PlayerController : MonoBehaviour
         // If you're wondering, all forces in Unity are in Newtons.
         // If you don't know what a Newton is, and want to know, just ask us. This isn't a physics class unfortunately.
         rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+
+        // Set isJumping to true, since we just jumped.
+        isJumping = true;
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        // If the player collides with an enemy, they die and the level restarts.
+        // BUT, we also want to check if the player is currently jumping or not, cause if they are, they should kill
+        // the enemy instead.
+        if (collision.gameObject.tag == "Enemy")
+        {
+            // If we are jumping, kill the enemy.
+            if (isJumping)
+            {
+                Destroy(collision.gameObject);
+
+                // Let's also add a little upward force to the player.
+                rb.AddForce(Vector2.up * 50f, ForceMode2D.Impulse);
+
+                // Let's also update the score with how much this enemy was worth.
+                // We're calling the IncreaseScore method from the UIManager instance we made.
+                // We're then passing in the points the enemy was worth.
+                // We do this by accessing the gameobject on the collider that we hit, and then
+                // we get the Enemy component on that specific enemy, and call its GetPoints method.
+                UIManager.Instance.IncreaseScore(collision.gameObject.GetComponent<Enemy>().GetPoints());
+            }
+            // Otherwise, the player dies and we restart the scene.
+            else
+            {
+                SceneManager.LoadScene(0);
+            }
+        }
     }
 }
