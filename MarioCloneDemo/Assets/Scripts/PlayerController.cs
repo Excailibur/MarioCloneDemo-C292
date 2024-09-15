@@ -20,7 +20,11 @@ public class PlayerController : MonoBehaviour
     [SerializeField] LayerMask groundLayer;
 
     // We'll use this field to store if the player is currently jumping or not.
-    private bool isJumping = false;
+    public bool isJumping = false;
+    // Store if the player currently has the diamond powerup (red mushroom)
+    private bool isLarge = false;
+    // This is used to determine how far the raycast will travel to see if the player is standing on the ground or not.
+    private float raycastDistance = .75f;
 
     // References
     // We will use references anytime we need to access and communicate with a specific instance of any other class.
@@ -84,7 +88,13 @@ public class PlayerController : MonoBehaviour
         // from a position we choose (so the player's position) in a direction we choose (so down in this case).
         // We also can specify the max range of the laser. And we will also tell it what layer it can hit.
         // It won't hit anything that's not in this layer.
-        if (Physics2D.Raycast(transform.position, Vector2.down, .6f, groundLayer))
+        // We'll also adjust the distance based on if the player is larger or normal size.
+        float castDistance = raycastDistance;
+        if (isLarge)
+        {
+            castDistance = raycastDistance * 1.5f;
+        }
+        if (Physics2D.Raycast(transform.position, Vector2.down, castDistance, groundLayer))
         {
             // If our ray sucessfully hits something on the ground layer, we're obviously not jumping.
             isJumping = false;
@@ -186,6 +196,58 @@ public class PlayerController : MonoBehaviour
         isJumping = true;
     }
 
+    // Method to trigger the "Diamond" powerup.
+    public void PickUpDiamondPowerup()
+    {
+        // First make sure we don't already have this powerup active.
+        if (!isLarge)
+        {
+            // Set the powerup to active.
+            isLarge = true;
+            // Make the player larger.
+            transform.localScale = new Vector3(1.5f, 1.5f, 1.5f);
+        }
+    }
+
+    // Method to trigger the fireball powerup.
+    public void PickUpFireballPowerup()
+    {
+
+    }
+
+    // Method to damage/kill the player, with a parameter for enemy location (for knockback effect).
+    public void TakeDamage(Vector3 damageLocation)
+    {
+        // First we need to check to see if the player is large, cause if they are,
+        // they won't die, just shrink again.
+        // I also want to knock the player back so they don't take damage immediately again.
+        if (isLarge)
+        {
+            // This just resets the player's scale back to (1, 1, 1).
+            transform.localScale = Vector3.one;
+            // Make sure we flip the boolean back too.
+            isLarge = false;
+            // Let's do the knockback. Let's calculate the direction from the damage source to player.
+            Vector3 direction = transform.position - damageLocation;
+            // Then, let's take out only the x direction and also set it to 1 or -1.
+            if (direction.x > 0f)
+            {
+                // If the enemy was to the left of the player, knock the player up and to the right.
+                rb.AddForce(new Vector3(1, 1, 0) * 50f, ForceMode2D.Impulse);
+            }
+            else
+            {
+                // Otherwise, knock the player up and to the left.
+                rb.AddForce(new Vector3(-1, 1, 0) * 50f, ForceMode2D.Impulse);
+            }
+        }
+        else
+        {
+            // Otherwise, the player dies, reset the level.
+            SceneManager.LoadScene(0);
+        }
+    }
+
     private void OnCollisionEnter2D(Collision2D collision)
     {
         // If the player collides with an enemy, they die and the level restarts.
@@ -208,11 +270,16 @@ public class PlayerController : MonoBehaviour
                 // we get the Enemy component on that specific enemy, and call its GetPoints method.
                 UIManager.Instance.IncreaseScore(collision.gameObject.GetComponent<Enemy>().GetPoints());
             }
-            // Otherwise, the player dies and we restart the scene.
+            // Otherwise, the player takes damage or dies.
             else
             {
-                SceneManager.LoadScene(0);
+                TakeDamage(collision.gameObject.transform.position);
             }
+        }
+        // If the player hits spikes, they take damage or die.
+        else if (collision.gameObject.tag == "Spike")
+        {
+            TakeDamage(collision.gameObject.transform.position);
         }
     }
 }

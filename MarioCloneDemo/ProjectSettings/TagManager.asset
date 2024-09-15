@@ -7,6 +7,8 @@ TagManager:
   - loopingPlatform
   - Coin
   - Enemy
+  - Spike
+  - Powerup
   layers:
   - Default
   - TransparentFX

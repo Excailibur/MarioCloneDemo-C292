@@ -4,6 +4,22 @@ using UnityEngine;
 
 public class PowerupBox : MonoBehaviour
 {
+    // Field for which particular powerup to spawn.
+    [SerializeField] GameObject powerUp;
+    // Field for the sprite to swap to after the powerup has been activated.
+    [SerializeField] Sprite inactiveSprite;
+    // Keep track of if the box has been activated already or not.
+    private bool isUsed = false;
+
+    // Reference for the Sprite Renderer component on this powerupBox.
+    private SpriteRenderer spriteRenderer;
+
+    private void Start()
+    {
+        // Initialize the spriteRenderer.
+        spriteRenderer = GetComponent<SpriteRenderer>();
+    }
+
     // This is a built-in Event in Unity that is triggered when a gameObject with a collider bumps into
     // the collider attached to the gameObject this script is attached to.
     // This particular one only works with 2D colliders (not 3D and not triggers).
@@ -32,7 +48,14 @@ public class PowerupBox : MonoBehaviour
             // Because I want to move the object upwards, I need to put something in for the y value.
             // I'm putting 3 cause I want it to move up 3 meters. I'm using 0 for the x and z value because I don't want to change those.
             // So all together this is saying, "Move the object this script is on upward 3 meters from where it already was".
-            transform.position += new Vector3(0, 3, 0);
+            //transform.position += new Vector3(0, 3, 0);
+
+            // First we check to see if the player is jumping (we only want to spawn a powerup if the player jumps into the powerup box.
+            if (collision.gameObject.GetComponent<PlayerController>().isJumping)
+            {
+                // The player is jumping, so we spawn the powerup.
+                SpawnPowerup();
+            }
         }
     }
 
@@ -45,6 +68,21 @@ public class PowerupBox : MonoBehaviour
         if (collider.gameObject.tag == "Player")
         {
             transform.position += new Vector3(0, 3, 0);
+        }
+    }
+
+    // This method will be called when the player hits the powerup.
+    void SpawnPowerup()
+    {
+        // First check to make sure this powerupBox hasn't already spawned a powerup.
+        if (!isUsed)
+        {
+            // Flip the boolean to true so it can't spawn more powerups after this one.
+            isUsed = true;
+            // Spawn the powerup at the location of the powerup box, but 1 meter higher.
+            Instantiate(powerUp, transform.position + new Vector3(0, 1, 0), Quaternion.identity);
+            // Switch the sprite for the box from the "active" version to the "used" version.
+            spriteRenderer.sprite = inactiveSprite;
         }
     }
 }

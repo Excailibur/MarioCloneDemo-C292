@@ -152,6 +152,8 @@ public class UIManager : MonoBehaviour
         // You can find the index of each scene, reorder them, and also add and remove scenes from the game build.
         // Go to File -> Build Settings. From there you can see all your scenes that will be included in the build,
         // and you can add more and move them around.
+        // NOTE: We're also unpausing the game first.
+        Time.timeScale = 1;
         SceneManager.LoadScene(0);
     }
 
