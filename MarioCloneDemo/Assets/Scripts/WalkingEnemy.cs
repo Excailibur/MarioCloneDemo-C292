@@ -4,15 +4,6 @@ using UnityEngine;
 
 public class WalkingEnemy : Enemy
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+    // Notice that this class inherits from Enemy and has none of it's own methods or fields.
+    // This means it will behave exactly like the Enemy class, with no changes.
 }
