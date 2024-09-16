@@ -13,5 +13,10 @@ public class MapBoundary : MonoBehaviour
         {
             SceneManager.LoadScene(0);
         }
+        else
+        {
+            // If it's anything else like an enemy or projectile, it'll be destroyed.
+            Destroy(collision.gameObject);
+        }
     }
 }

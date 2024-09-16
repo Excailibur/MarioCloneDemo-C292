@@ -14,7 +14,7 @@ public abstract class Enemy : MonoBehaviour
     [SerializeField] int points;
 
     // Field to store the reference of the Sprite Renderer component on this enemy.
-    private SpriteRenderer spriteRenderer;
+    protected SpriteRenderer spriteRenderer;
 
     // Start is called before the first frame update
     // Note we use the protected keyword.
